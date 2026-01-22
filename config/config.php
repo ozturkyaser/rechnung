@@ -79,6 +79,22 @@ define('DEFAULT_PAYMENT_TERMS', (int)($_ENV['DEFAULT_PAYMENT_TERMS'] ?? 14));
 define('DEFAULT_SKONTO_DAYS', (int)($_ENV['DEFAULT_SKONTO_DAYS'] ?? 7));
 define('DEFAULT_SKONTO_PERCENT', (float)($_ENV['DEFAULT_SKONTO_PERCENT'] ?? 2));
 
+// Firmen-Konfiguration (Standard)
+define('COMPANY_NAME', $_ENV['COMPANY_NAME'] ?? 'Ihre Firma GmbH');
+define('COMPANY_STREET', $_ENV['COMPANY_STREET'] ?? 'Musterstraße 123');
+define('COMPANY_ZIP', $_ENV['COMPANY_ZIP'] ?? '12345');
+define('COMPANY_CITY', $_ENV['COMPANY_CITY'] ?? 'Berlin');
+define('COMPANY_COUNTRY', $_ENV['COMPANY_COUNTRY'] ?? 'Deutschland');
+define('COMPANY_PHONE', $_ENV['COMPANY_PHONE'] ?? '+49 30 12345678');
+define('COMPANY_EMAIL', $_ENV['COMPANY_EMAIL'] ?? 'info@example.com');
+define('COMPANY_WEB', $_ENV['COMPANY_WEB'] ?? 'www.example.com');
+define('COMPANY_TAX_ID', $_ENV['COMPANY_TAX_ID'] ?? '');
+define('COMPANY_VAT_ID', $_ENV['COMPANY_VAT_ID'] ?? '');
+define('COMPANY_REGISTER', $_ENV['COMPANY_REGISTER'] ?? '');
+define('COMPANY_BANK_NAME', $_ENV['COMPANY_BANK_NAME'] ?? '');
+define('COMPANY_IBAN', $_ENV['COMPANY_IBAN'] ?? '');
+define('COMPANY_BIC', $_ENV['COMPANY_BIC'] ?? '');
+
 // Shopify-Konfiguration
 define('SHOPIFY_SHOP_DOMAIN', $_ENV['SHOPIFY_SHOP_DOMAIN'] ?? '');
 define('SHOPIFY_API_KEY', $_ENV['SHOPIFY_API_KEY'] ?? '');

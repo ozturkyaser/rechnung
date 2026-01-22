@@ -266,10 +266,14 @@
     </div>
 </div>
 
+<form id="send-email-form" method="POST" action="<?= url('invoices/' . $invoice['id'] . '/send') ?>" style="display: none;">
+    <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+</form>
+
 <script>
 function sendInvoiceEmail() {
-    if (confirm('Rechnung per Email an den Kunden senden?')) {
-        window.location.href = '<?= url('invoices/' . $invoice['id'] . '/send') ?>';
+    if (confirm('Rechnung per Email an den Kunden senden?\n\nEmpfänger: <?= e($customer['email'] ?? '') ?>')) {
+        document.getElementById('send-email-form').submit();
     }
 }
 

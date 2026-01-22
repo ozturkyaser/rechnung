@@ -365,7 +365,7 @@ class InvoiceController extends Controller {
     }
 
     /**
-     * PDF generieren (wird später implementiert)
+     * PDF generieren
      */
     public function generatePdf($id) {
         $this->requireAuth();
@@ -377,12 +377,45 @@ class InvoiceController extends Controller {
             $this->redirect(url('invoices'));
         }
 
-        setFlash('info', 'PDF-Generierung wird in Kürze verfügbar sein.');
-        $this->redirectBack();
+        try {
+            // Hole Kunde und Positionen
+            $customer = $this->customerModel->find($invoice['customer_id']);
+            $items = $this->invoiceItemModel->getItemsForInvoice($id);
+
+            // Hole Firmendaten
+            $db = \Libs\Database::getInstance();
+            $companyData = $db->fetchOne("SELECT * FROM clients WHERE id = ? LIMIT 1", [1]);
+
+            // Erstelle PDF
+            $pdfGenerator = new \Libs\PdfGenerator($companyData);
+            $pdf = $pdfGenerator->generateInvoice($invoice, $customer, $items);
+
+            // Speichere PDF (optional)
+            $pdfPath = STORAGE_PATH . '/invoices/';
+            if (!is_dir($pdfPath)) {
+                mkdir($pdfPath, 0775, true);
+            }
+
+            $filename = 'Rechnung_' . $invoice['invoice_number'] . '.pdf';
+            $fullPath = $pdfPath . $filename;
+            $pdfGenerator->save($fullPath);
+
+            // Update PDF path in database
+            $this->invoiceModel->update($id, ['pdf_path' => 'invoices/' . $filename]);
+
+            // Output PDF zum Browser
+            $pdf->Output($filename, 'D'); // D = Download
+            exit;
+
+        } catch (\Exception $e) {
+            logMessage("PDF generation error: " . $e->getMessage(), 'error');
+            setFlash('error', 'Fehler beim Generieren des PDFs: ' . $e->getMessage());
+            $this->redirectBack();
+        }
     }
 
     /**
-     * Email versenden (wird später implementiert)
+     * Email versenden
      */
     public function sendEmail($id) {
         $this->requireAuth();
@@ -394,7 +427,56 @@ class InvoiceController extends Controller {
             $this->redirect(url('invoices'));
         }
 
-        setFlash('info', 'Email-Versand wird in Kürze verfügbar sein.');
-        $this->redirectBack();
+        try {
+            // Hole Kunde
+            $customer = $this->customerModel->find($invoice['customer_id']);
+
+            if (empty($customer['email'])) {
+                setFlash('error', 'Kunde hat keine Email-Adresse hinterlegt.');
+                $this->redirectBack();
+            }
+
+            // Generiere PDF falls nicht vorhanden
+            $pdfPath = null;
+            if (empty($invoice['pdf_path']) || !file_exists(STORAGE_PATH . '/' . $invoice['pdf_path'])) {
+                $items = $this->invoiceItemModel->getItemsForInvoice($id);
+                $db = \Libs\Database::getInstance();
+                $companyData = $db->fetchOne("SELECT * FROM clients WHERE id = ? LIMIT 1", [1]);
+
+                $pdfGenerator = new \Libs\PdfGenerator($companyData);
+                $pdfGenerator->generateInvoice($invoice, $customer, $items);
+
+                $pdfStoragePath = STORAGE_PATH . '/invoices/';
+                if (!is_dir($pdfStoragePath)) {
+                    mkdir($pdfStoragePath, 0775, true);
+                }
+
+                $filename = 'Rechnung_' . $invoice['invoice_number'] . '.pdf';
+                $fullPath = $pdfStoragePath . $filename;
+                $pdfGenerator->save($fullPath);
+
+                $this->invoiceModel->update($id, ['pdf_path' => 'invoices/' . $filename]);
+                $pdfPath = $fullPath;
+            } else {
+                $pdfPath = STORAGE_PATH . '/' . $invoice['pdf_path'];
+            }
+
+            // Sende Email
+            $emailService = new \Libs\EmailService();
+            $result = $emailService->sendInvoice($invoice, $customer, $pdfPath);
+
+            if ($result['success']) {
+                setFlash('success', 'Rechnung erfolgreich per Email versendet an ' . $customer['email']);
+            } else {
+                setFlash('error', $result['message']);
+            }
+
+            $this->redirectBack();
+
+        } catch (\Exception $e) {
+            logMessage("Email send error: " . $e->getMessage(), 'error');
+            setFlash('error', 'Fehler beim Versenden der Email: ' . $e->getMessage());
+            $this->redirectBack();
+        }
     }
 }
