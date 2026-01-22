@@ -23,7 +23,7 @@ abstract class Controller {
         }
 
         // Sonst mit Layout
-        require_once APP_PATH . '/views/layouts/main.php';
+        require_once APP_PATH . '/Views/layouts/main.php';
     }
 
     /**
@@ -33,7 +33,7 @@ abstract class Controller {
         extract($data);
 
         ob_start();
-        $viewFile = APP_PATH . '/views/' . str_replace('.', '/', $view) . '.php';
+        $viewFile = APP_PATH . '/Views/' . str_replace('.', '/', $view) . '.php';
 
         if (file_exists($viewFile)) {
             require $viewFile;
