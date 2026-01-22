@@ -266,9 +266,83 @@
     </div>
 </div>
 
+<!-- Email Send Form -->
 <form id="send-email-form" method="POST" action="<?= url('invoices/' . $invoice['id'] . '/send') ?>" style="display: none;">
     <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
 </form>
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="<?= url('payments') ?>">
+                <input type="hidden" name="csrf_token" value="<?= csrfToken() ?>">
+                <input type="hidden" name="invoice_id" value="<?= $invoice['id'] ?>">
+
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-credit-card"></i> Zahlung buchen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Rechnung:</strong> <?= e($invoice['invoice_number']) ?><br>
+                        <strong>Offener Betrag:</strong> <?= formatMoney($invoice['total_gross'] - $invoice['paid_amount']) ?>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payment_date" class="form-label">Zahlungsdatum <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="payment_date" name="payment_date" value="<?= date('Y-m-d') ?>" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Betrag (EUR) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control format-currency" id="amount" name="amount"
+                                   value="<?= number_format($invoice['total_gross'] - $invoice['paid_amount'], 2, ',', '.') ?>" required>
+                            <span class="input-group-text">€</span>
+                        </div>
+                        <small class="text-muted">Verwenden Sie Komma als Dezimaltrennzeichen (z.B. 123,45)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="payment_method" class="form-label">Zahlungsart</label>
+                        <select class="form-select" id="payment_method" name="payment_method">
+                            <option value="bank_transfer">Überweisung</option>
+                            <option value="cash">Bar</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="stripe">Stripe</option>
+                            <option value="credit_card">Kreditkarte</option>
+                            <option value="direct_debit">Lastschrift</option>
+                            <option value="other">Sonstiges</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="reference" class="form-label">Referenz / Verwendungszweck</label>
+                        <input type="text" class="form-control" id="reference" name="reference"
+                               placeholder="z.B. Kontoauszug-Referenz">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notizen</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"
+                                  placeholder="Interne Notizen zur Zahlung"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Zahlung buchen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <script>
 function sendInvoiceEmail() {
@@ -278,8 +352,9 @@ function sendInvoiceEmail() {
 }
 
 function addPayment() {
-    // TODO: Modal für Zahlungseingabe
-    alert('Zahlungseingabe wird in Kürze verfügbar sein.');
+    // Öffne Payment Modal
+    const modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+    modal.show();
 }
 
 function duplicateInvoice() {
@@ -287,4 +362,14 @@ function duplicateInvoice() {
         alert('Duplizierfunktion wird in Kürze verfügbar sein.');
     }
 }
+
+// Quick-Fill Betrag
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('paymentModal');
+    if (modal) {
+        modal.addEventListener('shown.bs.modal', function() {
+            document.getElementById('amount').select();
+        });
+    }
+});
 </script>

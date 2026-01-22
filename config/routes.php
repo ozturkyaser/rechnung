@@ -82,6 +82,8 @@ $router->post('/credits', 'CreditController@store', 'credits.store')->middleware
 // ========================================
 $router->get('/payments', 'PaymentController@index', 'payments.index')->middleware('auth');
 $router->post('/payments', 'PaymentController@store', 'payments.store')->middleware('auth');
+$router->get('/payments/stats', 'PaymentController@stats', 'payments.stats')->middleware('auth');
+$router->post('/payments/{id}/delete', 'PaymentController@delete', 'payments.delete')->middleware('auth');
 
 // ========================================
 // Mahnungen
