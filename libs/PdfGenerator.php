@@ -347,6 +347,161 @@ class PdfGenerator {
     }
 
     /**
+     * Generiere Angebots-PDF
+     */
+    public function generateOffer($offer, $customer, $items) {
+        $this->pdf->AddPage();
+
+        // Logo (falls vorhanden)
+        if (!empty($this->companyData['logo_path']) && file_exists($this->companyData['logo_path'])) {
+            $this->pdf->Image($this->companyData['logo_path'], 20, 15, 40, 0, '', '', '', false, 300, '', false, false, 0);
+            $yStart = 45;
+        } else {
+            $yStart = 20;
+        }
+
+        // Firmenadresse (rechts oben)
+        $this->addCompanyAddress($yStart);
+
+        // Kundenadresse
+        $this->addCustomerAddress($customer, $yStart + 40);
+
+        // Angebotsdetails (Tabelle rechts)
+        $this->addOfferDetails($offer, $yStart + 40);
+
+        // Betreff
+        $this->pdf->SetY($yStart + 85);
+        if (!empty($offer['subject'])) {
+            $this->pdf->SetFont('helvetica', 'B', 12);
+            $this->pdf->Cell(0, 10, $offer['subject'], 0, 1);
+        } else {
+            $this->pdf->SetFont('helvetica', 'B', 12);
+            $this->pdf->Cell(0, 10, 'Angebot ' . $offer['invoice_number'], 0, 1);
+        }
+
+        // Einleitungstext
+        $this->pdf->SetY($this->pdf->GetY() + 5);
+        if (!empty($offer['intro_text'])) {
+            $this->pdf->SetFont('helvetica', '', 10);
+            $this->pdf->MultiCell(0, 5, $offer['intro_text'], 0, 'L');
+        } else {
+            $this->pdf->SetFont('helvetica', '', 10);
+            $this->pdf->MultiCell(0, 5, 'Vielen Dank für Ihre Anfrage. Gerne unterbreiten wir Ihnen folgendes Angebot:', 0, 'L');
+        }
+
+        // Positionen Tabelle (mit optionalen Items)
+        $this->pdf->SetY($this->pdf->GetY() + 5);
+        $this->addOfferItemsTable($items);
+
+        // Summen
+        $this->addTotals($offer);
+
+        // Schlusstext
+        if (!empty($offer['outro_text'])) {
+            $this->pdf->SetY($this->pdf->GetY() + 10);
+            $this->pdf->SetFont('helvetica', '', 10);
+            $this->pdf->MultiCell(0, 5, $offer['outro_text'], 0, 'L');
+        } else {
+            $this->pdf->SetY($this->pdf->GetY() + 10);
+            $this->pdf->SetFont('helvetica', '', 10);
+            $validUntil = !empty($offer['valid_until']) ? date('d.m.Y', strtotime($offer['valid_until'])) : 'auf Anfrage';
+            $this->pdf->MultiCell(0, 5, 'Dieses Angebot ist gültig bis zum ' . $validUntil . '. Wir freuen uns auf Ihre Bestellung!', 0, 'L');
+        }
+
+        // Kleingedrucktes / Footer
+        $this->addFooter();
+
+        return $this->pdf;
+    }
+
+    /**
+     * Angebotsdetails hinzufügen
+     */
+    private function addOfferDetails($offer, $y) {
+        $this->pdf->SetXY(110, $y + 25);
+        $this->pdf->SetFont('helvetica', '', 9);
+
+        $details = [
+            ['label' => 'Angebotsnr.:', 'value' => $offer['invoice_number']],
+            ['label' => 'Angebotsdatum:', 'value' => date('d.m.Y', strtotime($offer['invoice_date']))],
+        ];
+
+        if (!empty($offer['valid_until'])) {
+            $details[] = ['label' => 'Gültig bis:', 'value' => date('d.m.Y', strtotime($offer['valid_until']))];
+        }
+
+        foreach ($details as $detail) {
+            $this->pdf->SetX(110);
+            $this->pdf->Cell(40, 4, $detail['label'], 0, 0, 'L');
+            $this->pdf->Cell(0, 4, $detail['value'], 0, 1, 'R');
+        }
+    }
+
+    /**
+     * Positionen-Tabelle für Angebote hinzufügen (mit optionalen Items)
+     */
+    private function addOfferItemsTable($items) {
+        // Tabellenkopf
+        $this->pdf->SetFont('helvetica', 'B', 9);
+        $this->pdf->SetFillColor(240, 240, 240);
+
+        $this->pdf->Cell(10, 7, 'Pos.', 1, 0, 'C', true);
+        $this->pdf->Cell(75, 7, 'Bezeichnung', 1, 0, 'L', true);
+        $this->pdf->Cell(20, 7, 'Menge', 1, 0, 'C', true);
+        $this->pdf->Cell(25, 7, 'Einzelpreis', 1, 0, 'R', true);
+        $this->pdf->Cell(15, 7, 'MwSt.', 1, 0, 'C', true);
+        $this->pdf->Cell(25, 7, 'Gesamt', 1, 1, 'R', true);
+
+        // Positionen
+        $this->pdf->SetFont('helvetica', '', 9);
+        $position = 1;
+
+        foreach ($items as $item) {
+            $y = $this->pdf->GetY();
+
+            // Beschreibungstext vorbereiten
+            $description = $item['name'];
+            if (!empty($item['description'])) {
+                $description .= "\n" . $item['description'];
+            }
+            // Optional-Markierung
+            if (!empty($item['is_optional']) && $item['is_optional'] == 1) {
+                $description .= "\n(Optional)";
+            }
+
+            // Höhe für Beschreibung berechnen
+            $nb = $this->pdf->getStringHeight(75, $description);
+            $height = max(7, $nb);
+
+            // Position
+            $this->pdf->MultiCell(10, $height, $position, 1, 'C', false, 0);
+
+            // Bezeichnung
+            $this->pdf->MultiCell(75, $height, $description, 1, 'L', false, 0);
+
+            // Menge
+            $qty = number_format($item['quantity'], 2, ',', '.') . ' ' . $item['unit'];
+            $this->pdf->MultiCell(20, $height, $qty, 1, 'C', false, 0);
+
+            // Einzelpreis
+            $price = number_format($item['price_net'], 2, ',', '.') . ' €';
+            if (!empty($item['discount_percent']) && $item['discount_percent'] > 0) {
+                $price .= "\n-" . number_format($item['discount_percent'], 2, ',', '.') . '%';
+            }
+            $this->pdf->MultiCell(25, $height, $price, 1, 'R', false, 0);
+
+            // MwSt
+            $this->pdf->MultiCell(15, $height, number_format($item['tax_rate'], 0) . '%', 1, 'C', false, 0);
+
+            // Gesamt
+            $total = number_format($item['total_gross'], 2, ',', '.') . ' €';
+            $this->pdf->MultiCell(25, $height, $total, 1, 'R', false, 1);
+
+            $position++;
+        }
+    }
+
+    /**
      * PDF als String ausgeben
      */
     public function output($filename = 'rechnung.pdf', $destination = 'I') {
