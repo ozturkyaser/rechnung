@@ -1,0 +1,38 @@
+# Environment files
+.env
+config/database.php
+
+# Composer
+/vendor/
+composer.lock
+
+# Storage
+/storage/logs/*
+/storage/cache/*
+/storage/sessions/*
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+!/storage/sessions/.gitkeep
+
+# Uploads
+/public/uploads/*
+!/public/uploads/.gitkeep
+!/public/uploads/logos/.gitkeep
+!/public/uploads/invoices/.gitkeep
+!/public/uploads/temp/.gitkeep
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.log
